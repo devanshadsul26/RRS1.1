@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Login</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="page">
+    <h1>Customer Login</h1>
+
+    <form id="loginForm">
+        <label>Email:
+            <input type="email" id="email" required>
+        </label>
+        <label>Password:
+            <input type="password" id="password" required>
+        </label>
+        <button type="submit">Login</button>
+    </form>
+
+    <p id="error" class="error"></p>
+    <button type="button" onclick="window.location.href='/'">
+        Home
+    </button>
+</div>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const body = {
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+        };
+
+        let res;
+        try {
+            res = await fetch('/api/auth/login/customer', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+        } catch (err) {
+            console.error(err);
+            document.getElementById('error').textContent = 'Cannot reach server';
+            return;
+        }
+
+        let data;
+        try {
+            data = await res.json();
+        } catch (err) {
+            console.error('Invalid JSON from server', err);
+            document.getElementById('error').textContent = 'Invalid server response';
+            return;
+        }
+
+        console.log('CUSTOMER LOGIN RESPONSE JSON:', data);
+
+        if (!res.ok) {
+            document.getElementById('error').textContent = data.message || 'Login failed';
+            return;
+        }
+
+        const custId = data.customerId || data.id;
+        if (!custId) {
+            document.getElementById('error').textContent = 'No customerId in response';
+            return;
+        }
+
+        localStorage.setItem('customerId', custId);
+        window.location.href = '/customer-dashboard.html';
+    });
+</script>
+
+</body>
+</html>

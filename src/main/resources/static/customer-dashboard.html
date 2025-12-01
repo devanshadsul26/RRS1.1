@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="page"></div>
+
+<h1>Customer Dashboard</h1>
+<div id="welcome"></div>
+<p>
+    Registered customer
+    <span class="badge-discount">5% discount in system</span>
+</p>
+<button id="logoutBtn" style="float:right;">Logout</button>
+<div style="clear:both;"></div>
+
+<h2>Make a Reservation</h2>
+<form id="bookingForm">
+    <label>Date: <input type="date" id="date" required></label><br>
+    <label>Time: <input type="time" id="time" required></label><br>
+    <label>Guests: <input type="number" id="guestCount" min="1" max="50" required></label><br>
+    <label>Location:
+        <select id="locationPreference">
+            <option value="">Any</option>
+            <option value="Indoor">Indoor</option>
+            <option value="Outdoor">Outdoor</option>
+        </select>
+    </label><br>
+    <label>Special Requests:
+        <textarea id="specialRequests"></textarea>
+    </label><br>
+    <p>Availability: <span id="availabilityStatus">-</span></p>
+    <button type="submit">Book</button>
+</form>
+
+<h2>Your Reservations</h2>
+<div class="table-wrapper">
+    <table id="reservationsTable">
+        <thead>
+        <tr>
+            <th>ID</th><th>Date</th><th>Time</th><th>Guests</th><th>Status</th><th>Action</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+
+<p id="message" class="message"></p>
+<p id="error" class="error"></p>
+
+<script>
+
+    const customerId = localStorage.getItem('customerId');
+    if (!customerId) {
+        window.location.href = '/customer-login.html';
+    }
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('customerId');
+    window.location.href = '/customer-login.html';
+    });
+
+    // show welcome text
+    document.getElementById('welcome').textContent = 'Logged in as customer #' + customerId;
+
+    function isDateInPast(dateStr) {
+    const picked = new Date(dateStr);
+    if (Number.isNaN(picked.getTime())) return true;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    picked.setHours(0, 0, 0, 0);
+    return picked < today;
+}
+
+
+    // helper: check availability
+    function isTimeWithinOpening(timeStr) {
+    // expects "HH:MM"
+    if (!timeStr || timeStr.length < 5) return false;
+    const [h, m] = timeStr.split(':').map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return false;
+
+    const minutes = h * 60 + m;
+    const open = 17 * 60;   // 17:00
+    const close = 23 * 60;  // 23:00
+
+    return minutes >= open && minutes <= close;
+}
+
+    async function checkAvailability() {
+        const date = document.getElementById('date').value;
+        const time = document.getElementById('time').value;
+        const guestCount = document.getElementById('guestCount').value;
+        const location = document.getElementById('locationPreference').value;
+
+        if (!date || !time || !guestCount) {
+            document.getElementById('availabilityStatus').textContent = '-';
+            return;
+        }
+
+        const params = new URLSearchParams({
+            date,
+            time,
+            guestCount,
+            locationPreference: location
+        });
+
+        const res = await fetch('/api/availability/check?' + params.toString());
+        const data = await res.json();
+        document.getElementById('availabilityStatus').textContent =
+            data.available ? 'Available' : 'Not available';
+    }
+
+
+
+    // trigger availability when fields change
+    ['date','time','guestCount','locationPreference'].forEach(id => {
+        document.getElementById(id).addEventListener('change', checkAvailability);
+    });
+
+    // submit booking
+    document.getElementById('bookingForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        document.getElementById('message').textContent = '';
+        document.getElementById('error').textContent = '';
+
+        const body = {
+            customerId: parseInt(customerId),
+            date: document.getElementById('date').value,
+            time: document.getElementById('time').value,
+            guestCount: parseInt(document.getElementById('guestCount').value),
+            locationPreference: document.getElementById('locationPreference').value,
+            specialRequests: document.getElementById('specialRequests').value
+        };
+
+            // client-side validation
+    if (isDateInPast(body.date)) {
+        document.getElementById('error').textContent = 'Please choose today or a future date.';
+        return;
+    }
+
+    if (!isTimeWithinOpening(body.time)) {
+        document.getElementById('error').textContent = 'Time must be between 17:00 and 23:00.';
+        return;
+    }
+
+    if (Number.isNaN(body.guestCount) || body.guestCount < 1 || body.guestCount > 50) {
+        document.getElementById('error').textContent = 'Guest count must be between 1 and 50.';
+        return;
+    }
+
+
+        const res = await fetch('/api/reservations/create', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            document.getElementById('error').textContent = data.message || 'Booking failed';
+        } else {
+            document.getElementById('message').textContent =
+                'Reservation created. ID = ' + data.reservationId +
+                ', status = ' + data.status;
+            loadReservations();
+        }
+    });
+
+    // load reservations for this customer
+    async function loadReservations() {
+        const res = await fetch('/api/reservations?customerId=' + customerId);
+        const data = await res.json();
+        const tbody = document.querySelector('#reservationsTable tbody');
+        tbody.innerHTML = '';
+
+        data.forEach(r => {
+            const tr = document.createElement('tr');
+                    tr.innerHTML = `
+            <td>${r.id}</td>
+            <td>${r.reservationDate}</td>
+            <td>${r.reservationTime}</td>
+            <td>${r.guestCount}</td>
+            <td>
+                <span class="status-pill status-${r.status.replace(' ', '\\ ')}">
+                    ${r.status}
+                </span>
+            </td>
+            <td>
+                ${r.status === 'Confirmed' || r.status === 'Pending Confirmation'
+                    ? '<button data-id="'+r.id+'">Cancel</button>'
+                    : ''}
+            </td>
+        `;
+
+            tbody.appendChild(tr);
+        });
+
+        // attach cancel handlers
+        document.querySelectorAll('#reservationsTable button').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.getAttribute('data-id');
+                const res = await fetch('/api/reservations/' + id, { method: 'DELETE' });
+                if (res.ok) {
+                    loadReservations();
+                }
+            });
+        });
+    }
+
+    // initial load
+    loadReservations();
+</script>
+</body>
+</html>

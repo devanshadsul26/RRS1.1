@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Login</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="page">
+    <h1>Admin Login</h1>
+
+    <form id="loginForm">
+        <label>Email:
+            <input type="email" id="email" required>
+        </label>
+        <label>Password:
+            <input type="password" id="password" required>
+        </label>
+        <button type="submit">Login</button>
+    </form>
+
+    <p id="error" class="error"></p>
+    <button type="button" onclick="window.location.href='/'">
+        Home
+    </button>
+</div>
+<script>...</script>
+</body>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const body = {
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value
+        };
+
+        let res;
+        try {
+            res = await fetch('/api/auth/login/admin', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(body)
+            });
+        } catch (err) {
+            console.error(err);
+            document.getElementById('error').textContent = 'Cannot reach server';
+            return;
+        }
+
+        let data;
+        try {
+            data = await res.json();
+        } catch (err) {
+            console.error('Invalid JSON from server', err);
+            document.getElementById('error').textContent = 'Invalid server response';
+            return;
+        }
+
+        console.log('ADMIN LOGIN RESPONSE JSON:', data);
+
+        if (!res.ok) {
+            document.getElementById('error').textContent = data.message || 'Login failed';
+            return;
+        }
+
+        // read employeeId from JSON
+        const empId = data.employeeId || data.id;
+        if (!empId) {
+            document.getElementById('error').textContent = 'No employeeId in response';
+            return;
+        }
+
+        localStorage.setItem('employeeId', empId);
+        window.location.href = '/admin-dashboard.html';
+    });
+</script>
+
+</body>
+</html>

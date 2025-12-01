@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="page">
+    <h1>Admin Dashboard</h1>
+
+    <div id="welcome"></div>
+    <button id="adminLogoutBtn" style="float:right;">Logout</button>
+    <div style="clear:both;"></div>
+
+
+<h2>Pending Confirmations</h2>
+    <div class="table-wrapper">
+        <table id="pendingTable">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Customer</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Guests</th>
+        <th>Status</th>
+        <th>Action</th>
+    </tr>
+
+    </thead>
+    <tbody></tbody>
+        </table>
+    </div>
+
+<h2>Audit Log</h2>
+    <div class="table-wrapper">
+        <table id="auditTable">
+    <thead>
+    <tr>
+        <th>Log ID</th>
+        <th>Action</th>
+        <th>Reservation</th>
+        <th>Customer</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Res Date</th>
+        <th>Res Time</th>
+        <th>Guests</th>
+        <th>Special Requests</th>
+        <th>Employee</th>
+        <th>Details</th>
+        <th>Logged At</th>
+        <th>Action</th>
+    </tr>
+
+
+
+    </thead>
+    <tbody></tbody>
+</table>
+    </div>
+
+<p id="message" style="color:green;"></p>
+<p id="error" style="color:red;"></p>
+</div>
+<script>
+    const employeeId = localStorage.getItem('employeeId');
+    if (!employeeId) {
+        window.location.href = '/admin-login.html';
+    }
+
+        document.getElementById('welcome').textContent =
+        'Logged in as employee #' + employeeId;
+
+        document.getElementById('adminLogoutBtn').addEventListener('click', () => {
+    localStorage.removeItem('employeeId');
+    window.location.href = '/admin-login.html';
+});
+
+
+    // load all reservations and filter Pending Confirmation
+    async function loadPending() {
+        const res = await fetch('/api/admin/reservations'); // you can add this endpoint
+        const data = await res.json();
+        const tbody = document.querySelector('#pendingTable tbody');
+        tbody.innerHTML = '';
+
+        data.filter(r => r.status === 'Pending Confirmation')
+            .forEach(r => {
+                const tr = document.createElement('tr');
+                        const c = r.customer || {};
+        tr.innerHTML = `
+            <td>${r.id}</td>
+            <td>${c.name || ''}</td>
+            <td>${c.email || ''}</td>
+            <td>${c.phoneNumber || ''}</td>
+            <td>${r.reservationDate}</td>
+            <td>${r.reservationTime}</td>
+            <td>${r.guestCount}</td>
+            <td>
+                <span class="status-pill status-${r.status.replace(' ', '\\ ')}">
+                    ${r.status}
+                </span>
+            </td>
+            <td>
+                <button data-id="${r.id}" data-action="confirm">Confirm</button>
+                <button data-id="${r.id}" data-action="cancel">Cancel</button>
+            </td>
+        `;
+
+                tbody.appendChild(tr);
+            });
+
+        document.querySelectorAll('#pendingTable button').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.getAttribute('data-id');
+                const action = btn.getAttribute('data-action');
+                const url = `/api/admin/reservations/${id}/${action}?employeeId=${employeeId}`;
+                const res = await fetch(url, { method: 'PUT' });
+                const text = await res.text();
+                if (res.ok) {
+                    document.getElementById('message').textContent = text;
+                    loadPending();
+                    loadAudit();
+                } else {
+                    document.getElementById('error').textContent = text;
+                }
+            });
+        });
+    }
+
+    // load audit log
+    async function loadAudit() {
+    const res = await fetch('/api/admin/audit-log');
+    const data = await res.json();
+    const tbody = document.querySelector('#auditTable tbody');
+    tbody.innerHTML = '';
+
+    data.forEach(log => {
+        const tr = document.createElement('tr');
+        const c = log.customer || {};
+        const e = log.employee || {};
+        const r = log.reservation || {};
+        tr.innerHTML = `
+            <td>${log.id}</td>
+            <td>${log.actionType}</td>
+            <td>${r.id || ''}</td>
+            <td>${c.name || c.id || ''}</td>
+            <td>${c.email || ''}</td>
+            <td>${c.phoneNumber || ''}</td>
+            <td>${r.reservationDate || ''}</td>
+            <td>${r.reservationTime || ''}</td>
+            <td>${r.guestCount != null ? r.guestCount : ''}</td>
+            <td>${r.specialRequests || ''}</td>
+            <td>${e.id || ''}</td>
+            <td>${log.details}</td>
+            <td>${log.timestamp}</td>
+            <td>
+                <button data-log-id="${log.id}" class="delete-log-btn">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    document.querySelectorAll('.delete-log-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.getAttribute('data-log-id');
+            if (!confirm('Delete audit log #' + id + '?')) return;
+
+            const res = await fetch('/api/admin/audit-log/' + id, { method: 'DELETE' });
+            const text = await res.text();
+            if (res.ok) {
+                document.getElementById('message').textContent = text;
+                loadAudit();
+            } else {
+                document.getElementById('error').textContent = text || 'Failed to delete audit log';
+            }
+        });
+    });
+}
+
+
+    loadPending();
+    loadAudit();
+</script>
+</body>
+</html>
