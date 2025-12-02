@@ -21,6 +21,18 @@
         <label>Password:
             <input type="password" id="password" required minlength="6">
         </label>
+        <label>Security question:
+            <select id="securityQuestion" required>
+                <option value="">Select a question</option>
+                <option value="Primary school name">Primary school name</option>
+                <option value="Favourite animal">Favourite animal</option>
+                <option value="Birth city">Birth city</option>
+            </select>
+        </label>
+        <label>Security answer:
+            <input type="text" id="securityAnswer" required>
+        </label>
+
         <button type="submit">Register</button>
     </form>
 
@@ -42,7 +54,9 @@
             name: document.getElementById('name').value,
             email: document.getElementById('email').value,
             phone: document.getElementById('phone').value,
-            password: document.getElementById('password').value
+            password: document.getElementById('password').value,
+            securityQuestion: document.getElementById('securityQuestion').value,
+            securityAnswer: document.getElementById('securityAnswer').value
         };
 
         const res = await fetch('/api/auth/register', {

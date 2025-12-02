@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 public class AuthenticationService {
@@ -24,10 +25,11 @@ public class AuthenticationService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public Customer registerCustomer(String name, String email, String rawPassword, String phone) {
+    public Customer registerCustomer(String name, String email, String rawPassword, String phone,String securityQuestion, String securityAnswer) {
         if (customerRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already registered");
         }
+
 
         Customer c = new Customer();
         c.setName(name);
@@ -37,18 +39,23 @@ public class AuthenticationService {
         c.setCreatedAt(LocalDateTime.now());
         c.setUpdatedAt(LocalDateTime.now());
         c.setIsActive(true);
+        c.setSecurityQuestion(securityQuestion);
+        c.setSecurityAnswerHash(passwordEncoder.encode(securityAnswer));
 
         return customerRepository.save(c);
     }
 
     public Customer loginCustomer(String email, String rawPassword) {
         Customer c = customerRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
+                .orElseThrow(() -> new RuntimeException("Invalid credentials"));
+
         if (!passwordEncoder.matches(rawPassword, c.getPasswordHash())) {
-            throw new IllegalArgumentException("Invalid credentials");
+            throw new RuntimeException("Invalid credentials");
         }
+
         return c;
     }
+
 
     public Employee loginAdmin(String email, String rawPassword) {
         Employee e = employeeRepository.findByEmail(email)
@@ -61,4 +68,25 @@ public class AuthenticationService {
         }
         return e;
     }
+
+    public boolean resetPasswordWithSecurityAnswer(String email, String answer, String newPassword) {
+        Optional<Customer> opt = customerRepository.findByEmail(email);
+        if (opt.isEmpty()) {
+            return false;
+        }
+        Customer c = opt.get();
+        if (c.getSecurityAnswerHash() == null) {
+            return false;
+        }
+        // Compare given answer with stored hash
+        if (!passwordEncoder.matches(answer, c.getSecurityAnswerHash())) {
+            return false;
+        }
+
+        c.setPasswordHash(passwordEncoder.encode(newPassword));
+        customerRepository.save(c);
+        return true;
+    }
+
+
 }

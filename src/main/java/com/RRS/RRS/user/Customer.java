@@ -33,6 +33,12 @@ public class Customer {
     @Column(name = "isactive")
     private Boolean isActive;
 
+    @Column(name = "security_question")
+    private String securityQuestion;
+
+    @Column(name = "security_answer_hash")
+    private String securityAnswerHash;
+
     // getters and setters
 
     public Integer getId() { return id; }
@@ -58,4 +64,10 @@ public class Customer {
 
     public Boolean getIsActive() { return isActive; }
     public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+
+    public String getSecurityQuestion() { return securityQuestion; }
+    public void setSecurityQuestion(String securityQuestion) { this.securityQuestion = securityQuestion; }
+
+    public String getSecurityAnswerHash() { return securityAnswerHash; }
+    public void setSecurityAnswerHash(String securityAnswerHash) { this.securityAnswerHash = securityAnswerHash; }
 }

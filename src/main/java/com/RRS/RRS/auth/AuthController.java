@@ -21,9 +21,13 @@ public class AuthController {
                 request.getName(),
                 request.getEmail(),
                 request.getPassword(),
-                request.getPhone()
+                request.getPhone(),
+                request.getSecurityQuestion(),
+                request.getSecurityAnswer()
         );
+        System.out.println("REGISTER called for " + request.getEmail());
         return ResponseEntity.ok("Registered customer with id " + c.getId());
+
     }
 
     @PostMapping("/login/customer")
@@ -47,4 +51,16 @@ public class AuthController {
                 )
         );
     }
+
+    @PostMapping("/forgot-password-with-security")
+    public ResponseEntity<?> forgotPasswordWithSecurity(@RequestBody ForgotPasswordSecurityRequest req) {
+        boolean updated = authService.resetPasswordWithSecurityAnswer(
+                req.getEmail(), req.getSecurityAnswer(), req.getNewPassword());
+        if (!updated) {
+            return ResponseEntity.status(400)
+                    .body("Email or security answer is incorrect");
+        }
+        return ResponseEntity.ok("Password updated successfully");
+    }
+
 }
