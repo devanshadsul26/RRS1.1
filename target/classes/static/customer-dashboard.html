@@ -5,15 +5,20 @@
     <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-<div class="page"></div>
+<div class="page">
 
-<h1>Customer Dashboard</h1>
-<div id="welcome"></div>
-<p>
-    Registered customer
-    <span class="badge-discount">5% discount in system</span>
-</p>
-<button id="logoutBtn" style="float:right;">Logout</button>
+    <div class="header-row">
+        <div>
+            <h1>Customer Dashboard</h1>
+            <div id="welcome"></div>
+            <p>
+                Registered customer
+                <span class="badge-discount">5% discount in system</span>
+            </p>
+        </div>
+        <button id="logoutBtn" class="secondary">Logout</button>
+    </div>
+
 <div style="clear:both;"></div>
 
 <h2>Make a Reservation</h2>
@@ -50,6 +55,7 @@
 
 <p id="message" class="message"></p>
 <p id="error" class="error"></p>
+</div>
 
 <script>
 
@@ -214,6 +220,8 @@
 
     // initial load
     loadReservations();
+
+
 </script>
 </body>
 </html>
