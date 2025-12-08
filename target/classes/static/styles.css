@@ -15,7 +15,11 @@ body {
     width: 100%;
     max-width: 900px;
     margin: 24px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,250,252,0.96));
+    background: linear-gradient(
+        135deg,
+        rgba(255,255,255,0.78),
+        rgba(248,250,252,0.78)
+    );
     padding: 24px 22px;
     border-radius: 16px;
     box-shadow:
@@ -24,6 +28,7 @@ body {
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
 }
+
 
 /* Headings */
 h1 {

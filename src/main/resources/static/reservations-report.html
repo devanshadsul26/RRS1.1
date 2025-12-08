@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Reservations Report </title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<div class="page">
+    <div class="card">
+        <div class="header-row">
+            <div>
+                <h1>Reservations Report</h1>
+            </div>
+        </div>
+
+        <form id="filterForm" class="header-row">
+            <label>
+                Select date:
+                <input type="date" id="filterDate" required>
+            </label>
+            <button type="submit">Load reservations</button>
+        </form>
+
+        <div id="error" class="error" style="display:none;"></div>
+
+        <div class="table-wrapper table-scroll" style="margin-top:16px;">
+            <table id="reportTable">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Guests</th>
+                    <th>Customer</th>
+                    <th>Email</th>
+                </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadReport(date) {
+        const res = await fetch('/api/report/reservations-by-date?date=' + encodeURIComponent(date));
+        const tbody = document.querySelector('#reportTable tbody');
+        const errorBox = document.getElementById('error');
+
+        if (!res.ok) {
+            errorBox.style.display = 'block';
+            errorBox.textContent = 'Failed to load reservations';
+            tbody.innerHTML = '';
+            return;
+        }
+
+        errorBox.style.display = 'none';
+        const data = await res.json();
+        tbody.innerHTML = '';
+
+        data.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${r.reservationId}</td>
+              <td>${r.reservationDate}</td>
+              <td>${r.reservationTime}</td>
+              <td>${r.guestCount}</td>
+              <td>${r.customerName}</td>
+              <td>${r.customerEmail}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    document.getElementById('filterForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const date = document.getElementById('filterDate').value;
+        if (!date) return;
+        loadReport(date);
+    });
+</script>
+</body>
+</html>
